@@ -20,9 +20,9 @@ include_directories(${OpenMP_CXX_INCLUDE_DIR})
 
 
 if(NOT CMAKE_BUILD_TYPE)
-  # set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE Release)
 endif()
-set(cmake_cxx_flags_release "-g")
+# set(cmake_cxx_flags_release "-g")
 # set(cmake_cxx_flags_release "-o3")
 
 set(mlas_common_srcs
