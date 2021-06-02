@@ -21,6 +21,7 @@
 #else
 #include <sys/mman.h>
 #endif
+#include <malloc.h>
 template <typename T>
 class MatrixGuardBuffer {
  public:
@@ -185,15 +186,37 @@ SGEMM(bool pack_b,
     if (pack_b) {
         size_t pack_b_size = MlasGemmPackBSize(N, K);
         printf("pack_b_size=%ld\n", pack_b_size);
-        std::vector<float> B_packed(pack_b_size);
         MatrixGuardBuffer<uint8_t> BufferBPacked;
         void* PackedB = BufferBPacked.GetBuffer(pack_b_size, true);
+        // void* PackedB2 = memalign(64, pack_b_size);
+        void* PackedB2 = memalign(32, pack_b_size);
+        std::cout << A.data() << std::endl;
+        std::cout << PackedB2 << std::endl;
+        // void* PackedB2 = malloc(pack_b_size);
 
+        for (int i = 0; i < A.size(); i++) {
+            A[i] = i;
+        }
+        for (int i = 0; i < B.size(); i++) {
+            B[i] = i;
+        }
         MlasGemmPackB(CblasNoTrans, N, K, B.data(), N, PackedB);
+        MlasGemmPackB(CblasNoTrans, N, K, B.data(), N, PackedB2);
+        float* new_b = (float*)PackedB2;
+        for (int i = 0; i < pack_b_size/4; i++) {
+            std::cout << new_b[i] << " ";
+        }
+        std::cout << std::endl;
 
         MlasGemm(trans_a ? CblasTrans : CblasNoTrans, static_cast<size_t>(M),
                  static_cast<size_t>(N), static_cast<size_t>(K), alpha, A.data(), trans_a ? M : K,
-                 PackedB, beta, C.data(), N);
+                 PackedB2, beta, C.data(), N);
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                std::cout << C[i*N + j] << " ";
+            }
+            std::cout << std::endl;
+        }
 
         for (int i = 0; i < iter; i++) {
             CPUCacheFlushImpl((char*)A.data(), M * K * sizeof(float));
@@ -231,14 +254,14 @@ int
 main(int argc, char** argv)
 {
     // const int iter = 1000;
-    // int m = atoi(argv[1]);
-    // int k = atoi(argv[2]);
-    // int n = atoi(argv[3]);
+    int m = atoi(argv[1]);
+    int k = atoi(argv[2]);
+    int n = atoi(argv[3]);
     // std::string do_flush;
     // if (argc == 5) {
     //     do_flush = argv[4];
     // }
 
-    SGEMM(true, false, false, 64, 768, 3072);
+    SGEMM(true, false, false, m, n, k);
     return 0;
 }
